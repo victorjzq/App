@@ -5,7 +5,7 @@ import Button from '@components/Button';
 import ConfirmModal from '@components/ConfirmModal';
 import ReceiptCropView from '@components/ReceiptCropView';
 import type {CropRect} from '@components/ReceiptCropView';
-import useAllTransactions from '@hooks/useAllTransactions';
+import {useSearchStateContext} from '@components/Search/SearchContext';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
@@ -59,8 +59,18 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Camera', 'Download', 'Crop', 'Trashcan', 'Rotate', 'Close', 'Checkmark']);
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const allTransactions = useAllTransactions();
-    const transactionMain = allTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`];
+    const {currentSearchResults} = useSearchStateContext();
+    const [transactionFromOnyx] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`);
+    const transactionMain = useMemo(() => {
+        if (transactionFromOnyx) {
+            return transactionFromOnyx;
+        }
+        const searchData = currentSearchResults?.data;
+        if (!searchData) {
+            return undefined;
+        }
+        return searchData[`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`];
+    }, [transactionFromOnyx, currentSearchResults?.data, transactionID]);
     const [transactionDraft] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION_DRAFT}${getNonEmptyStringOnyxID(transactionID)}`);
     const [reportMetadata = CONST.DEFAULT_REPORT_METADATA] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`);
     const [policyCategories] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${report?.policyID}`);
